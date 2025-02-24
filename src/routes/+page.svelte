@@ -1,191 +1,179 @@
-# script 태그
+<!-- src/routes/+page.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import MemoryNavigation from '$lib/components/MemoryNavigation.svelte';
+  import ChatMessages from '$lib/components/ChatMessages.svelte';
+  import Footer from '$lib/components/Footer.svelte';
+  import type { ChatPair } from '$lib/types';
   
   let selectedMemory: string | null = null;
-  
-  const memoryTypes = [
-    {
-      category: '베이스 메모리 🔮',
-      isBase: true,
-      description: '모든 메모리의 기본이 되는 추상 클래스',
-      items: []
-    },
-    {
-      category: '베이스챗 메모리 💬',
-      items: [
-        { 
-          id: 'openai_token_buffer', 
-          name: 'OpenAI 에이전트 토큰 버퍼 메모리', 
-          description: 'OpenAI 모델에 최적화된 토큰 기반 버퍼 메모리' 
-        },
-        { 
-          id: 'buffer', 
-          name: '버퍼 메모리', 
-          description: '대화 내용을 순차적으로 저장하는 가장 기본적인 메모리' 
-        },
-        { 
-          id: 'conversation_summary', 
-          name: '베이스 컨버세이션 서머리 메모리',
-          subItems: [
-            {
-              id: 'summary',
-              name: '컨버세이션 서머리 메모리',
-              description: '전체 대화 내용을 요약하여 저장하는 스마트한 메모리'
-            },
-            {
-              id: 'summary_buffer',
-              name: '컨버세이션 서머리 버퍼 메모리',
-              description: '요약본과 최근 대화를 함께 저장하는 하이브리드 메모리'
-            }
-          ]
-        },
-        { 
-          id: 'buffer_window', 
-          name: '버퍼 윈도우 메모리', 
-          description: '최근 K개의 대화만 기억하는 효율적인 메모리' 
-        },
-        { 
-          id: 'entity', 
-          name: '엔티티 메모리', 
-          description: '대화 속 중요 개체들을 추적하는 지능형 메모리' 
-        },
-        { 
-          id: 'combined', 
-          name: '컴바인드 메모리', 
-          description: '여러 메모리를 조합하여 사용하는 복합 메모리' 
-        },
-        { 
-          id: 'conversation_token_buffer', 
-          name: '컨버세이션 토큰 버퍼 메모리', 
-          description: '토큰 제한을 고려하여 대화를 저장하는 메모리' 
-        }
-      ]
-    },
-    {
-      category: '벡터스토어 리트리버 메모리 🎯',
-      items: [
-        { 
-          id: 'vectorstore', 
-          name: '벡터스토어 메모리', 
-          description: '대화 내용을 벡터화하여 저장하고 검색하는 고급 메모리' 
-        }
-      ]
-    },
-    {
-      category: '제너레이티브 에이전트 메모리 🤖',
-      items: [
-        { 
-          id: 'generative', 
-          name: '제너레이티브 에이전트 메모리', 
-          description: 'AI가 대화 맥락을 생성적으로 유지하는 고급 메모리' 
-        }
-      ]
-    }
-  ];
+  let messages: ChatPair[] = [];
+  let userInput = '';
+  let isNavOpen = false;
+  let mainContent: HTMLElement;
 
-  function selectMemory(id: string) {
+  onMount(async () => {
+    const response = await fetch('/src/lib/data/sample-chats.json');
+    const data = await response.json();
+    messages = data.pairs;
+  });
+
+  function handleMemorySelect(id: string) {
     selectedMemory = id;
+    isNavOpen = false;
+    // 스무스 스크롤
+    if (window.innerWidth < 768) {
+      mainContent?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function handleSubmit() {
+    if (!userInput.trim()) return;
+    
+    messages = [...messages, {
+      human: userInput,
+      ai: "이 응답은 선택된 메모리 타입에 따라 다르게 생성될 예정입니다."
+    }];
+    
+    userInput = '';
+  }
+
+  function toggleNav() {
+    isNavOpen = !isNavOpen;
   }
 </script>
 
-# template 태그
-<div class="min-h-screen bg-gray-900 text-white p-4 md:p-8">
-  <!-- Header -->
-  <header class="max-w-3xl mx-auto text-center mb-8">
-    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-peach">백문이 불여일코딩</h1>
-    <p class="text-lg text-gray-400 mb-1">100번 강의 들어도 한번 코딩 안함만 못하다 💻</p>
-    <p class="text-base text-gray-500">LangChain.js 메모리 직접 체험하기 ✨</p>
-  </header>
+<div class="min-h-screen bg-gray-900 text-white flex flex-col">
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full flex-1 flex flex-col">
+      <!-- Mobile Navigation Toggle -->
+      <button
+        class="md:hidden fixed top-4 left-4 z-50 p-2 bg-gray-800/80 rounded-lg hover:bg-gray-700/80 transition-colors"
+        on:click={toggleNav}
+        aria-label="메뉴 토글"
+      >
+        <span class="text-2xl transform transition-transform duration-300 block
+                   {isNavOpen ? 'rotate-90 scale-90' : 'rotate-0'}"
+        >
+          {isNavOpen ? '✕' : '☰'}
+        </span>
+      </button>
 
-  <!-- Memory Type Selection -->
-  <div class="max-w-4xl mx-auto grid gap-6">
-    {#each memoryTypes as category}
-      <div class="bg-gray-800/80 backdrop-blur-sm rounded-xl p-5 shadow-lg">
-        <h2 class="text-xl font-semibold mb-3 text-peach flex items-center gap-2">
-          {category.category}
-          {#if category.isBase}
-            <span class="text-xs bg-peach/20 px-2 py-1 rounded-full">Base Class</span>
-          {/if}
-        </h2>
-        {#if category.description}
-          <p class="text-sm text-gray-400 mb-3">{category.description}</p>
-        {/if}
-        <div class="grid grid-cols-1 gap-3">
-          {#each category.items as item}
-            <div class="space-y-3">
-              <button
-                class="w-full p-4 rounded-lg text-left transition-all duration-200 hover:scale-102
-                       {selectedMemory === item.id ? 'bg-peach/20 border border-peach/30' : 'bg-gray-700/80 hover:bg-gray-600/80 border border-transparent'}"
-                on:click={() => selectMemory(item.id)}
-              >
-                <h3 class="text-lg font-semibold mb-1">{item.name}</h3>
-                {#if item.description}
-                  <p class="text-sm text-gray-300">{item.description}</p>
-                {/if}
-              </button>
-              
-              {#if item.subItems}
-                <div class="pl-4 space-y-2">
-                  {#each item.subItems as subItem}
-                    <button
-                      class="w-full p-3 rounded-lg text-left transition-all duration-200 hover:scale-102
-                             {selectedMemory === subItem.id ? 'bg-peach/20 border border-peach/30' : 'bg-gray-700/90 hover:bg-gray-600/90 border border-transparent'}"
-                      on:click={() => selectMemory(subItem.id)}
+      <!-- Header -->
+      <header class="bg-gray-800/80 backdrop-blur-sm border border-gray-700/30 rounded-xl p-4 md:p-6 mb-4 md:mb-6">
+        <div class="max-w-3xl mx-auto text-center space-y-2">
+          <div class="inline-block px-3 py-1 rounded-full bg-peach/10 text-peach text-xs font-medium mb-2">
+            ClaS Study Project
+          </div>
+          <h1 class="text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-peach to-[#FFD700] bg-clip-text text-transparent">
+            백문이 불여일코딩
+          </h1>
+          <p class="text-sm md:text-base text-gray-400">
+            100번 강의 듣고 코딩 한번쯤은 해보아요 
+            <span class="inline-block animate-bounce">💻</span>
+          </p>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <div class="flex-1 flex flex-col md:flex-row gap-4 md:gap-6 min-h-0">
+        <!-- Navigation -->
+        <div
+          class="fixed md:relative md:w-72 lg:w-80 z-40 transition-all duration-300 ease-in-out
+                 md:transform-none md:opacity-100
+                 {isNavOpen ? 'inset-0 bg-gray-900' : '-translate-x-full opacity-0 md:opacity-100 md:translate-x-0'}"
+        >
+          <div class="h-full md:h-auto overflow-auto">
+            <MemoryNavigation {selectedMemory} onSelect={handleMemorySelect} />
+          </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main 
+          bind:this={mainContent}
+          class="flex-1 flex flex-col min-w-0 overflow-hidden"
+        >
+          <!-- Chat Area -->
+          <div class="flex-1 flex flex-col min-h-0">
+            <div class="flex-1 bg-gray-800/80 backdrop-blur-sm rounded-xl overflow-hidden flex flex-col max-w-3xl mx-auto w-full border border-gray-700/30">
+              {#if selectedMemory}
+                <div class="border-b border-gray-700/30 p-4 flex justify-between items-center bg-gray-800/50">
+                  <h2 class="text-base md:text-lg font-semibold flex items-center gap-2 truncate">
+                    <span class="text-peach animate-pulse">✨</span>
+                    {selectedMemory}
+                  </h2>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span class="text-xs bg-peach/10 px-2 py-1 rounded-full border border-peach/20">
+                      테스트 중
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="flex-1 min-h-0">
+                  <ChatMessages {messages} />
+                </div>
+                
+                <div class="border-t border-gray-700/30 p-4 bg-gray-800/50">
+                  <form 
+                    class="flex gap-2"
+                    on:submit|preventDefault={handleSubmit}
+                  >
+                    <input
+                      type="text"
+                      bind:value={userInput}
+                      placeholder="메시지를 입력해주세요..."
+                      class="flex-1 min-w-0 bg-gray-700/50 rounded-lg px-4 py-2 
+                             focus:outline-none focus:ring-2 focus:ring-peach/30 
+                             border border-gray-600/30 text-sm
+                             placeholder-gray-400 transition-all duration-200"
+                    />
+                    <button 
+                      type="submit"
+                      class="px-4 py-2 bg-peach/10 text-peach border border-peach/20 
+                             rounded-lg hover:bg-peach/20 transition-all duration-200 
+                             text-sm font-medium whitespace-nowrap flex items-center gap-2
+                             disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      disabled={!userInput.trim()}
                     >
-                      <h4 class="text-base font-semibold mb-1">{subItem.name}</h4>
-                      <p class="text-sm text-gray-300">{subItem.description}</p>
+                      전송
+                      <span class="text-xs">→</span>
                     </button>
-                  {/each}
+                  </form>
+                </div>
+              {:else}
+                <div class="flex-1 flex items-center justify-center p-4 md:p-8">
+                  <div class="text-center space-y-4">
+                    <div class="relative w-16 md:w-24 h-16 md:h-24 mx-auto">
+                      <p class="text-4xl md:text-6xl absolute inset-0 animate-ping opacity-25">
+                        {isNavOpen ? '👆' : '👈'}
+                      </p>
+                      <p class="text-4xl md:text-6xl relative">
+                        {isNavOpen ? '👆' : '👈'}
+                      </p>
+                    </div>
+                    <div class="space-y-2">
+                      <p class="text-base md:text-lg font-medium text-gray-300">
+                        메모리 타입을 선택해주세요
+                      </p>
+                      <p class="text-sm text-gray-400">
+                        {isNavOpen ? '위' : '왼쪽'}에서 테스트하고 싶은 메모리를 선택하면
+                        <br class="hidden sm:block">실시간으로 작동을 확인할 수 있어요
+                      </p>
+                    </div>
+                  </div>
                 </div>
               {/if}
             </div>
-          {/each}
-        </div>
-      </div>
-    {/each}
-  </div>
-
-  <!-- Chat Interface -->
-  {#if selectedMemory}
-    <div class="max-w-3xl mx-auto mt-8 bg-gray-800/80 backdrop-blur-sm rounded-xl p-5 shadow-lg">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold flex items-center gap-2">
-          <span class="text-peach">✨</span>
-          {memoryTypes
-            .flatMap(cat => cat.items)
-            .flatMap(item => item.subItems ? [item, ...item.subItems] : [item])
-            .find(item => item.id === selectedMemory)?.name}
-        </h2>
-        <button
-          class="px-3 py-1.5 bg-gray-700/80 rounded-lg hover:bg-gray-600/80 transition-colors text-sm"
-          on:click={() => selectedMemory = null}
-        >
-          다른 메모리 선택하기
-        </button>
-      </div>
-      
-      <!-- Chat Messages -->
-      <div class="min-h-[400px] bg-gray-700/50 rounded-lg p-4 mb-3">
-        <p class="text-center text-gray-400">채팅 인터페이스가 곧 구현될 예정입니다 🔨</p>
-      </div>
-      
-      <!-- Input Area -->
-      <div class="flex gap-2">
-        <input
-          type="text"
-          placeholder="메시지를 입력해주세요..."
-          class="flex-1 bg-gray-700/80 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-peach/50 text-sm"
-        />
-        <button class="px-4 py-2 bg-peach/20 text-peach border border-peach/30 rounded-lg hover:bg-peach/30 transition-colors text-sm font-medium">
-          전송
-        </button>
+          </div>
+        </main>
       </div>
     </div>
-  {/if}
+  </div>
+
+  <Footer />
 </div>
 
-# style 태그
 <style>
   :global(body) {
     margin: 0;
@@ -200,19 +188,31 @@
     color: var(--color-peach);
   }
 
+  .bg-peach\/10 {
+    background-color: rgba(255, 190, 152, 0.1);
+  }
+
   .bg-peach\/20 {
     background-color: rgba(255, 190, 152, 0.2);
   }
 
-  .bg-peach\/30 {
-    background-color: rgba(255, 190, 152, 0.3);
+  .border-peach\/20 {
+    border-color: rgba(255, 190, 152, 0.2);
   }
 
-  .border-peach\/30 {
-    border-color: rgba(255, 190, 152, 0.3);
+  .from-peach {
+    --tw-gradient-from: rgb(255, 190, 152);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
   }
 
-  .hover\:scale-102:hover {
-    transform: scale(1.02);
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  .animate-ping {
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 </style>
