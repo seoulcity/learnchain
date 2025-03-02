@@ -5,6 +5,7 @@
   import ChatMessages from '$lib/components/ChatMessages.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import type { ChatPair } from '$lib/types';
+  import sampleChats from '$lib/data/sample-chats.json';
   
   let selectedMemory: string | null = null;
   let messages: ChatPair[] = [];
@@ -12,10 +13,8 @@
   let isNavOpen = false;
   let mainContent: HTMLElement;
 
-  onMount(async () => {
-    const response = await fetch('/src/lib/data/sample-chats.json');
-    const data = await response.json();
-    messages = data.pairs;
+  onMount(() => {
+    messages = sampleChats.pairs;
   });
 
   function handleMemorySelect(id: string) {
